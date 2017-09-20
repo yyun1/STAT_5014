@@ -1,0 +1,250 @@
+---
+title: "HW3_Yun_Young"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+**Problem 4**
+Key take away is that by keeping your code correctly formatted and aligned, one can avoid simple mistakes such typos and blank spaces and make it easy to read and fix. Thus, by conforming to good coding formats, one can effectively work as codes get complicated.
+
+**Problem 5**
+```{r}
+library(lintr)
+
+#I deactivated following line because it lists all the corrections
+#lint(filename = "C:/Users/young/Desktop/R/STAT_5014_homework/02_data_munging_summarizing_R_git/HW2_Yun_Young.Rmd")
+
+print(c("lintr told me that: ",  "put spaces around all infix operators", "Commas should always have a space after", "Trailing whitespace is superfluous"))
+```
+
+
+**Problem 6**
+```{r, echo = F}
+library(data.table)
+library(tidyr)
+library(dplyr)
+library(ggplot2)
+library(vioplot)
+
+## a) A single table of the means, sd, and correlation for each of the 13 Observers
+
+#read data using readRDS
+devData <- readRDS("C:/Users/young/Desktop/R/STAT_5014_homework/03_good_programming_R_functions/HW3_data.rds")
+
+#create a table for summary later
+table <- matrix(NA, 13, 5)
+
+#set the column names for the table
+colnames(table) <- c("mean_dev1", "mean_dev2", "sd_dev1", "sd_dev2", "corr_dev")
+rownames(table) <- c("Ob_1", "Ob_2", "Ob_3", "Ob_4", "Ob_5", "Ob_6", "Ob_7", "Ob_8", "Ob_9",
+                      "Ob_10", "Ob_11", "Ob_12", "Ob_13")
+
+devData_Ob_list <- list()
+devData_Ob_list_Bind <- list()
+
+#loop by length of observer
+for(x in 1:length(unique(devData$Observer))) 
+{
+  #filter by Observer number and store the data in a vector list
+  devData_Ob_list[[x]] <- filter(devData, Observer == x) %>% select("dev1", "dev2")
+  
+  #combine each of the list by columns
+  devData_Ob_list_Bind <- bind_cols(devData_Ob_list_Bind, devData_Ob_list[[x]])
+  
+  #fills 5 columns of table matrix with mean_dev1, mean_dev2, sd_dev1, sd_dev2, cor_dev
+  table[x, 1] <- mean(devData_Ob_list[[x]]$dev1)
+  table[x, 2] <- mean(devData_Ob_list[[x]]$dev2)
+  table[x, 3] <- sd(devData_Ob_list[[x]]$dev1)
+  table[x, 4] <- sd(devData_Ob_list[[x]]$dev2)
+  table[x, 5] <- cor(devData_Ob_list[[x]]$dev1, devData_Ob_list[[x]]$dev2)
+}
+
+#make table as a data frame
+table <- as.data.frame(table)
+table
+
+## b) A box plot of all the means to compare the spread of means from dev1 to dev2
+
+#boxplots all columns in devData_table, which are all dev1 and dev2 by observer
+boxplot(devData_Ob_list_Bind)
+
+## c) A violin plot of all the sd to compare the spread of sd from dev1 to dev2
+
+#violin plot that plots sd_dev1 and sd_dev2 for all 13 observers
+vioplot(table$sd_dev1, table$sd_dev2)
+
+```
+
+**Problem 7**
+```{r, echo = F}
+#save url and read it into a variable
+url <- "http://www2.isye.gatech.edu/~jeffwu/wuhamadabook/data/BloodPressure.dat"
+
+#read and store the data
+readingData <- read.table(url, header=T, skip=1, fill=T, stringsAsFactors = F)
+
+#the data seem to have two different dataset in one.
+#select columns related to "reading by device"
+readingData_Dev <- select(readingData, Day, Dev1, Dev2, Dev3)
+colnames(readingData_Dev) <- c("Day", "Device_1", "Device_2", "Device_3")
+#print out the first table
+print("Data read by device: ")
+data.frame(readingData_Dev)
+
+#select columns related to "reading by doctor"
+readingData_Doc <- select(readingData, Day.1, Doc1, Doc2, Doc3)
+colnames(readingData_Doc) <- c("Day", "Doctor_1", "Doctor_2", "Doctor_3")
+
+#print out the second table
+print("Data read by Doctor: ")
+data.frame(readingData_Doc)
+
+#print out the summary for table 1 and table 2
+knitr::kable(summary(readingData_Dev), caption="Reading by Device")
+knitr::kable(summary(readingData_Doc), caption="Reading by Doctor")
+
+```
+
+**Problem 8**  
+```{r, echo=F }
+#set a vector x of length 20
+x=rep(NA, times = 20)
+
+#set initial guess for x
+x[1] = 0
+
+#plot the initial case, x[1]
+plot(x[1], 3^x[1] - sin(x[1]) + cos(5*x[1]), main = "Newton's Method Approximation")
+
+#set the plot window
+plot.window(c(-5, 5), c(-5, 5))
+
+#loop each time using Newton's method to generate next x until the rest of the vector x is filled and plot each point on graph
+for(i in 1:19) 
+{
+  x[i+1] <- x[i] - (3^x[i] - sin(x[i]) + cos(5*x[i]))/(3*x[i]^2 - cos(x[i]) - 5*sin(5*x[i]))
+  points(x[i+1], 3^x[i+1] - sin(x[i+1]) + cos(5*x[i+1]))
+}
+
+#print the estimated values of x for the first 20 estimates
+print("Estimated values of x[1] through x[20] are :")
+print(x)
+
+```
+
+  **Problem 9**
+```{r, echo = F}
+
+## A. Load datasets
+
+#This gives ID, and inspection details
+Car_Gebreken_select <- fread(input = "C:/Users/young/Desktop/R/Open_Data_RDW__Gebreken.csv", header = T, select=c(1,6), showProgress=F)
+
+#translate colnames
+colnames(Car_Gebreken_select) <- c("ID", "Inspection Detail")
+
+#This gives license plate, and inspection date, and defect code
+Car_Geconstat_select <- fread(input = "C:/Users/young/Desktop/R/Open_Data_RDW__Geconstateerde_Gebreken.csv", header=T, select=c(1,3,5),showProgress=F)
+
+#this has the license plate, make and model of vehicle, and date. 
+Car_Person_select <- fread(input = "C:/Users/young/Desktop/R/Personenauto_basisdata.csv", header=T, showProgress = F, select = c(1,3,4))
+
+#translate colnames
+colnames(Car_Person_select) <- c("Plate", "Make", "Model")
+
+#selects items with 2017 in the specified column
+Car_Geconstat_select_2017 <- Car_Geconstat_select[grep("2017",Car_Geconstat_select$"Meld datum door keuringsinstantie"),]
+
+#translate colnames
+colnames(Car_Geconstat_select_2017) <- c("Plate", "Inspection Date", "ID")
+
+
+## B. Merge the data set by plate and ID
+
+#merge two data frame by "Plate"
+Car_Merged_byPlate <- merge(Car_Person_select, Car_Geconstat_select_2017, by="Plate", all=TRUE)
+
+#merge two data frame by "ID"
+Car_Merged_byID <- merge(Car_Merged_byPlate, Car_Gebreken_select, by="ID", all=TRUE)
+
+
+## C. Remove NAs
+
+
+#omit NAs from the combined data frame
+Car_clean <- na.omit(Car_Merged_byID)
+
+
+## D. Different makes and models in 2017
+
+#Unique number of Make and Model
+print(c("Unique number of Car makes is ", length(unique(Car_clean$Make))))
+print(c("Unique number of Car models is ", length(unique(Car_clean$Model))))
+
+
+## E. 5 Most frequent defects in 2017
+
+#returns 5 most frequent element in "Inspection detail" column
+Frequent_Defects <- tail(names(sort(table(Car_clean$`Inspection Detail`))), 5)
+
+print("5 most frequent defects are : ")
+print(Frequent_Defects)
+
+print(c("5 Most frequent defects translated: ", "1. Tire(s) present with a profile depth of 1.6 to 2.5 mm",  "2. Operation / Condition Required Light / Retroreflector 5. *. 55", "3. Excessive oil leakage", "4. Band onvoldoende profiel", "5. Mechanische delen van het remsysteem vertonen slijtage"))
+
+
+#Selects the observations of each of the most frequent defects and store them in different data.
+Car_Defect_1 <- Car_clean[grep(as.factor("aanwezig met een profieldiepte van"), Car_clean$`Inspection Detail`), ]
+Car_Defect_2 <- Car_clean[grep(as.factor("Werking/toestand verplicht licht/retroreflector 5.*.55"), Car_clean$`Inspection Detail`), ]
+Car_Defect_3 <- Car_clean[grep(as.factor("Overmatige olielekkage"), Car_clean$`Inspection Detail`), ]
+Car_Defect_4 <- Car_clean[grep(as.factor("Band onvoldoende profiel"), Car_clean$`Inspection Detail`), ]
+Car_Defect_5 <- Car_clean[grep(as.factor("Mechanische delen van het remsysteem vertonen slijtage"), Car_clean$`Inspection Detail`), ]
+
+#Selects top make related to one of the most frequent defects
+  Car_Defect_1_Make <- tail(names(sort(table(Car_Defect_1$Make))), 1)
+  Car_Defect_2_Make <- tail(names(sort(table(Car_Defect_2$Make))), 1)
+  Car_Defect_3_Make <- tail(names(sort(table(Car_Defect_3$Make))), 1)
+  Car_Defect_4_Make <- tail(names(sort(table(Car_Defect_4$Make))), 1)
+  Car_Defect_5_Make <- tail(names(sort(table(Car_Defect_5$Make))), 1)
+  
+#Selects top models related to one of the most frequent defects
+  Car_Defect_1_Model <- tail(names(sort(table(Car_Defect_1$Model))), 1)
+  Car_Defect_2_Model <- tail(names(sort(table(Car_Defect_2$Model))), 1)
+  Car_Defect_3_Model <- tail(names(sort(table(Car_Defect_3$Model))), 1)
+  Car_Defect_4_Model <- tail(names(sort(table(Car_Defect_4$Model))), 1)
+  Car_Defect_5_Model <- tail(names(sort(table(Car_Defect_5$Model))), 1)
+  
+#print out the top make/model accosiated with the defects  
+  print("The following are Frequent Defect and Associated Top Make and Model: ")
+  print(c(Frequent_Defects[1], Car_Defect_1_Make, Car_Defect_1_Model))
+  print(c(Frequent_Defects[2], Car_Defect_2_Make, Car_Defect_2_Model))
+  print(c(Frequent_Defects[3], Car_Defect_3_Make, Car_Defect_3_Model))
+  print(c(Frequent_Defects[4], Car_Defect_4_Make, Car_Defect_4_Model))
+  print(c(Frequent_Defects[5], Car_Defect_5_Make, Car_Defect_5_Model))
+
+## f,g) test for a relationship between number of defects observed by make/model
+
+#store unique make/model in list
+unique_make <- unique(Car_clean$Make)
+unique_model <- unique(Car_clean$Model)
+
+#declare count for each unique make/model
+unique_make_count <- list()
+unique_model_count <- list()
+
+#store count of each make/model in the list
+for(x in length(unique_make))
+{
+  unique_make_count[x] <- nrow(filter(Car_clean, Make == unique_make[x]))
+  unique_model_count[x] <- nrow(filter(Car_clean, Model == unique_model[x]))
+}
+
+##tests linear relation
+
+#lm(unique_make_count ~ unique_make)
+#lm(unique_model_count ~ unique_model)
+#anova(unique_make_count ~ unique_make)
+#anova(unique_model_count ~ unique_model)
+
+```

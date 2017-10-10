@@ -1,0 +1,131 @@
+---
+title: "HW6_Yun_Young"
+output: html_notebook
+---
+
+Problem 2
+
+a. a for loop to iterate through all data points calculating the summed squared difference between the data points and mean of the data.
+
+```{r, echo=FALSE}
+### This code computes difference in square between y[i] and mean of y by summing up each of the squared difference using a for-loop. The time taken to loop is displayed by the function system.time()
+
+set.seed(12345)
+y <- seq(from=1, to=100, length.out = 1e8) + rnorm(1e8)
+
+mean_y <- mean(y)
+sum = 0
+
+system.time(
+for(i in 1:length(y))
+{
+  sum = sum + (y[i] - mean_y)^2
+})
+
+
+```
+
+b. repeat part a, but use vector operations to effect the same computation
+```{r, echo=FALSE}
+### This code does the same thing with part A, but now instead of using for-loop to go through each of the observation and sum the squared difference up, it just uses y as a vector and subtract mean of y from it and square the resulting matrix and then sum the elements of that matrix.
+
+system.time(sum_vector <- sum((y - mean_y)^2))
+
+```
+It looks like the result is hugely different. It took 7.08 seconds to do using a for-loop method, but only 0.52 seconds using the vector operation method. Hence, use vector operation when possible"
+
+Problem 3
+```{r, echo=FALSE}
+##### This code creates two different variables for theta: theta_estimate and theta_estimate_prev. I have set my step size = 4, m = length(h) = 100, and tolerance = 0.01. I used while loop conditioning that if the difference of theta_estimate and theta_estimate_prev for both of the beta is greater than the tolerance, the loop goes on until the condition is violated or the loop reaches the last element in h, in which case the loop just breaks using 'break'. I counted the loop iteration with a variable 'i' which starts at 1 and gets incremented by 1 for each successive iteration of while loop.
+### In the while loop, the values for theta_estimate_prev is updated with the current value, theta_estimate, and computes the new value of theta_estimate, which will serve as theta_estimate_prev in the next iteration of the loop.
+
+set.seed(1256)
+theta <- as.matrix(c(1,2),nrow=2)
+X <- cbind(1,rep(1:10,10))
+h <- X%*%theta+rnorm(100,0,0.2)
+theta_estimate <- as.matrix(c(0.1,.2),nrow=2)
+theta_estimate_prev <- as.matrix(c(1,2),nrow=2)
+
+m <- length(h)
+alpha <- .01
+tolerance = .0001
+i=1
+
+while(abs(theta_estimate[1] - theta_estimate_prev[1]) && abs(theta_estimate[1] - theta_estimate_prev[1]) > tolerance)
+{
+  if (i==length(h))
+    break
+  
+  theta_estimate_prev[1] <- theta_estimate[1]
+  theta_estimate_prev[2] <- theta_estimate[2]
+  
+  theta_estimate[1] = theta_estimate_prev[1] - alpha/m*sum(X %*% theta_estimate - h)
+  theta_estimate[2] = theta_estimate_prev[2] - alpha/m*sum(t(X %*% theta_estimate - h) %*% X)
+  
+  i=i+1
+}
+
+theta_estimate <- data.frame(theta_estimate)
+colnames(theta_estimate) <- "Estimate Coefficients"
+rownames(theta_estimate) <- c("X1", "X2")
+theta_estimate
+
+lmfit <- lm(h~0+X)
+
+data.frame(lmfit[1])
+
+print("The two coefficient estimates are similar for coefficients for X2, but not for X1. It looks like our algorithm using while loop worked well on one of the estimator. The lm function values are closer to the true value")
+
+```
+
+
+Problem 4
+
+\begin{equation*} \hat\beta = (X'X)^{-1}X'\underline{y} \end{equation*}
+
+To solve this following John Cook's advice, one should directly solve for beta without going through inverting the matrix, which will take a lot more time because inverse takes a lot more calculation. Thus, convert the equation to be like the following:
+
+\begin{equation*} (X'X)\hat\beta = X'\underline{y} \end{equation*}
+
+Then, use the following R code to solve the equation: solve(t(X) %*% X, t(X) %*% y), which will produce the value for beta much quicker than using the inverse.
+
+
+Problem 5
+```{r, echo=FALSE}
+###### My computer returns the following error: "Error: cannot allocate vector of size 1.9 Gb", so I reduced the C to 160*160, q to 100, id to 10. The size of the variable A, B are computed using object.size() function and reported using a table. Then, the calculation for y is done using matrix operations and the time taken is reported.
+
+ set.seed(12456) 
+    
+    G <- matrix(sample(c(0,0.5,1),size=16000,replace=T),ncol=10)
+    R <- cor(G) # R: 10 * 10 correlation matrix of G
+    rm(G)
+    C <- kronecker(R, diag(160)) # C is a 160 * 160 block diagonal matrix
+    id <- sample(1:160,size=10,replace=F)
+    q <- sample(c(0,0.5,1),size=100,replace=T) # vector of length 100
+    A <- C[id, -id] # matrix of dimension 10 * 100
+    B <- C[-id, -id] # matrix of dimension 100 * 100
+    p <- runif(10,0,1)
+    r <- runif(100,0,1)
+    C<-NULL #save some memory space
+    
+    Asize = object.size(A)
+    Bsize = object.size(B)
+    table <- data.frame(c(Asize, Bsize))
+    colnames(table) <-"Object size"
+    rownames(table) <- c("A", "B")
+    knitr::kable(table, caption="Object size of A, B")
+    
+    y = p + A %*% solve(B) * (q - r)
+    system.time(p + A %*% solve(B) * (q - r))
+    
+
+```
+
+Part B.
+
+Since using an inverse requires more calculation, we can take advantage of John Cook's advice. Transform the equation to be:
+
+\begin{equation*} By = A(q-r) + Bp \end{equation*}
+
+Now that the inverse is gone, we can compute with solve: solve(B, A(q-r) + Bp)
+
